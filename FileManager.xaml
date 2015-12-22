@@ -1,0 +1,67 @@
+﻿<Window x:Class="PUFAS.FileManager"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:PUFAS"
+        mc:Ignorable="d" WindowStartupLocation="CenterScreen"
+        Title="ПУФАС" Height="700" Width="930">
+    <Grid>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Height="35">
+            <StackPanel.Resources>
+                <Style TargetType="Button">
+                    <Setter Property="Margin" Value="10,0,0,0"/>
+                </Style>
+            </StackPanel.Resources>
+            <Button Width="25" Height="25" Padding="0,0,0,1" Content="‹" Name="btnBack" PreviewMouseLeftButtonDown="btnBack_PreviewMouseLeftButtonDown"/>
+            <Button Width="25" Height="25" Padding="0,0,0,1" Content="›" Name="btnForward" PreviewMouseLeftButtonDown="btnForward_PreviewMouseLeftButtonDown" />
+            <Button Width="80" Height="25" Padding="0,0,0,1" Content="Новый файл" PreviewMouseLeftButtonDown="Button_PreviewMouseLeftButtonDown"/>
+            <Button Width="80" Height="25" Padding="0,0,0,1" Content="Новая папка" Name="btnNewFile" PreviewMouseLeftButtonDown="btnNewFile_PreviewMouseLeftButtonDown"/>
+            <Button Width="100" Height="25" Padding="0,0,0,1" Content="Переименовать" Name="Rename" PreviewMouseLeftButtonDown="Rename_PreviewMouseLeftButtonDown" />
+            <Button Width="80" Height="25" Padding="0,0,0,1" Content="Копировать" Name="btnCopy" PreviewMouseLeftButtonDown="btnCopy_PreviewMouseLeftButtonDown"/>
+            <Button Width="80" Height="25" Padding="0,0,0,1" Content="Переместить" Name="btnMove" PreviewMouseLeftButtonDown="btnMove_PreviewMouseLeftButtonDown" />
+            <Button Width="60" Height="25" Padding="0,0,0,1" Content="Удалить" Name="btnRemove" PreviewMouseLeftButtonDown="btnRemove_PreviewMouseLeftButtonDown"/>
+        </StackPanel>
+        <Grid Margin="0,35,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <GridSplitter Grid.Row="0" Grid.Column="1" Grid.RowSpan="2" Width="2"
+                      VerticalAlignment="Stretch" HorizontalAlignment="Center"/>
+
+            <Grid Grid.Column="0">
+                <Label Height="30" Content="Path 1" VerticalAlignment="Top" Margin="10,0,0,0" Name="lblPathOne"/>
+
+
+                <ListView Name="lsLocal" Margin="10,30,0,10" PreviewMouseDoubleClick="lsOne_PreviewMouseDoubleClick" GotFocus="lsLocal_GotFocus" PreviewMouseRightButtonDown="lsLocal_PreviewMouseRightButtonDown">
+                    <ListView.View>
+                        <GridView>
+                            <GridView.Columns>
+                                <GridViewColumn Header="Имя файла" DisplayMemberBinding="{Binding Path=Name}"></GridViewColumn>
+                                <GridViewColumn Header="Размер" DisplayMemberBinding="{Binding Path=Size}"></GridViewColumn>
+                                <GridViewColumn Header="Дата изменения" DisplayMemberBinding="{Binding Path=Date, StringFormat=dd.MM.yy hh:mm}"></GridViewColumn>
+                            </GridView.Columns>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </Grid>
+
+            <Grid Grid.Column="2">
+                <Label Height="30" Content="Path 2" VerticalAlignment="Top" Margin="0,0,0,0" Name="lblPathTwo"/>
+                <ListView Name="lsRemove" Margin="0,30,10,10" PreviewMouseDoubleClick="lsRemove_PreviewMouseDoubleClick" GotFocus="lsRemove_GotFocus" >
+                    <ListView.View>
+                        <GridView>
+                            <GridView.Columns>
+                                <GridViewColumn Header="Имя файла" DisplayMemberBinding="{Binding Path=Name, Mode=OneWay}" ></GridViewColumn>
+                                <GridViewColumn Header="Размер" DisplayMemberBinding="{Binding Path=Size}"></GridViewColumn>
+                                <GridViewColumn Header="Дата изменения" DisplayMemberBinding="{Binding Path=Date, StringFormat=dd.MM.yy hh:mm}"></GridViewColumn>
+                            </GridView.Columns>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>
