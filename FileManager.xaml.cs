@@ -68,7 +68,7 @@ namespace PUFAS
 
         public FileManager(SshClient ssh, SftpClient sftp)
         {
-            InitializeComponent();
+            InitializeComponent(); 
             _ssh = ssh;
             _sftp = sftp;
 
@@ -129,11 +129,13 @@ namespace PUFAS
         }
         private void btnRemove_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            try
-            {
-                RemoveFile();
-            }
-            catch { }
+            //try
+            //{
+            //    RemoveFile();
+            //}
+            //catch { }
+
+            RemoveFile();
         }
         private void Rename_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
@@ -172,11 +174,15 @@ namespace PUFAS
         }
         private void btnCopy_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            CopyFile();
+            CopyFile(false);
         }
         private void btnMove_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            MoveFile();
+            PasteFile();
+        }
+        private void btnCut_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            CopyFile(true);
         }
         private void lsLocal_GotFocus(object sender, RoutedEventArgs e)
         {
@@ -362,20 +368,30 @@ namespace PUFAS
         {
             if (isLocalDir)
             {
-                try
+                //try
+                //{
+                //    pFile file = (pFile)lsLocal.SelectedItem;
+                //    if (file != null)
+                //    {
+                //        if (file.Size == null)
+                //            Directory.Delete(LocalDir + @"\" + file.Name);
+                //        else
+                //            File.Delete(local_dir + @"\" + file.Name);
+                //    }
+                //    UpdateLocalDir();
+                //}
+                //catch { }
+
+                pFile file = (pFile)lsLocal.SelectedItem;
+                if (file != null)
                 {
-                    pFile file = (pFile)lsLocal.SelectedItem;
-                    if (file != null)
-                    {
-                        if (file.Size == null)
-                            Directory.Delete(LocalDir + @"\" + file.Name);
-                        else
-                            File.Delete(local_dir + @"\" + file.Name);
-                    }
-                    UpdateLocalDir();
+                    if (file.Size == null)
+                        Directory.Delete(LocalDir + @"\" + file.Name, true);
+                    else
+                        File.Delete(local_dir + @"\" + file.Name);
                 }
-                catch { }
-                
+                UpdateLocalDir();
+
             }
             else
             {
@@ -432,18 +448,23 @@ namespace PUFAS
         /// <summary>
         /// Копирование файла
         /// </summary>
-        private void CopyFile()
+        private void CopyFile(bool iscut)
         {
             if (isLocalDir)
             {
                 pFile file = (pFile)lsLocal.SelectedItem;
                 if (file != null)
+                {
                     copy_file = new cFile
                     {
                         Name = file.Name,
                         Local = true,
+                        IsCut = iscut,
                         Path = LocalDir + @"\" + file.Name
                     };
+
+                }
+                    
             }
             else
             {
@@ -453,22 +474,26 @@ namespace PUFAS
                     {
                         Name = file.Name,
                         Local = false,
+                        IsCut = iscut,
                         Path = RemoteDir + "/" + file.Name
                     };
             }
         }
-
+        
         /// <summary>
-        /// Перемещение файла
+        /// Вставка файла
         /// </summary>
-        private void MoveFile()
+        private void PasteFile()
         {
             if (isLocalDir)
             {
                 if(copy_file.Local)
                 {
                     File.Copy(copy_file.Path, LocalDir + @"\" + copy_file.Name);
+                    if (copy_file.IsCut)
+                        File.Delete(copy_file.Path);
                     UpdateLocalDir();
+                    UpdateRemoteDir();
                 }
                 else
                 {
@@ -476,34 +501,38 @@ namespace PUFAS
                     try
                     {
                         FileStream f = new FileStream(LocalDir + @"\" + copy_file.Name, FileMode.Create);
+                        if (copy_file.IsCut)
+                            _sftp.DeleteFile(copy_file.Path);
                         _sftp.DownloadFile(copy_file.Path, f);
+                        f.Close();
                     }
                     catch
                     {
                     }
                     UpdateLocalDir();
+                    UpdateRemoteDir();
                 }
             }
             else
             {
                 if (copy_file.Local)
                 {
-                    // Из локалки на удаленку
-                    try
-                    {
-                        FileStream f = File.OpenRead(copy_file.Path);
-                        _sftp.UploadFile(f, RemoteDir);
-                        UpdateRemoteDir();
-                    }
-                    catch
-                    {
-
-                    }
+                    FileStream f = new FileStream(copy_file.Path, FileMode.OpenOrCreate);
+                    _sftp.BufferSize = 4 * 1024;
+                    _sftp.UploadFile(f, RemoteDir + "/" + copy_file.Name, null);
+                    f.Close();
+                    if (copy_file.IsCut)
+                        File.Delete(copy_file.Path);
+                    UpdateRemoteDir();
+                    UpdateLocalDir();
                 }
                 else
                 {
                     string _command = "cp " + copy_file.Path + " " + RemoteDir + "/";
                     string res = _ssh.RunCommand(_command).Result;
+                    if (copy_file.IsCut)
+                        _sftp.DeleteFile(copy_file.Path);
+                    UpdateLocalDir();
                     UpdateRemoteDir();
                 }
             }
@@ -542,7 +571,7 @@ namespace PUFAS
                 file_localcollection.Add(new pFile()
                 {
                     Name = file.Name,
-                    Size = ConvertSizeToString(file.Length),
+                    Size = file.Length.ToString(),
                     Date = file.LastWriteTime
                 });
             }
@@ -565,68 +594,31 @@ namespace PUFAS
                 }
             }
             else {
-                string _command = "ls -l " + RemoteDir + " --time-style=\"+%Y.%m.%d.%H.%M\"";
-                string[] mas = _ssh.RunCommand(_command).Result.Split('\n');
-                foreach (string txt in mas)
-                {
+                IEnumerable<Renci.SshNet.Sftp.SftpFile> ls = _sftp.ListDirectory(RemoteDir);
+                List<pFile> lsp = new List<pFile>();
 
-                    string[] items = txt.Split(' ');
-                    string[] el = new string[10];
-                    int i = 0;
-                    foreach(string s in items)
+                foreach (Renci.SshNet.Sftp.SftpFile f in ls)
+                {
+                    pFile _pf = new pFile { 
+                        Name = f.Name,
+                        Date = f.LastWriteTime
+                    };
+
+                    if (f.IsDirectory)
                     {
-                        if(s != "")
-                        {
-                            el[i] = s;
-                            i++;
-                        }
-                    }
-                    if (el[4] != null)
+                        _pf.Size = null;
+                        file_remotecollection.Add(_pf);
+                    } 
+                    else
                     {
-                        string[] time = el[5].Split('.');
-                        DateTime dt = new DateTime(
-                            Convert.ToInt32(time[0]), 
-                            Convert.ToInt32(time[1]), 
-                            Convert.ToInt32(time[2]), 
-                            Convert.ToInt32(time[3]), 
-                            Convert.ToInt32(time[4]),
-                            0);
-                        file_remotecollection.Add(new pFile()
-                        {
-                            Name = el[6],
-                            Size = el[4],
-                            Date = dt
-                        });
+                        _pf.Size = f.Length.ToString();
+                        lsp.Add(_pf);
                     }
                 }
-            }
-        }
 
-        /// <summary>
-        /// Конвертер размера файла
-        /// </summary>
-        private string ConvertSizeToString(long size)
-        {
-            string _res = "";
-            if (size < 1024)
-            {
-                _res = size.ToString() + " b";
+                foreach (pFile pfl in lsp)
+                    file_remotecollection.Add(pfl);
             }
-            else if (size >= 1024 && 
-                size <= Math.Pow(1024, 2)){
-                _res = (size / 1024).ToString() + " kb";
-            }
-            else if (size >= Math.Pow(1024, 2) &&
-                size <= Math.Pow(1024, 3))
-            {
-                _res = (size / Math.Pow(1024, 2)).ToString() + " mb";
-            }
-            else if (size >= Math.Pow(1024, 3) && 
-                size <= Math.Pow(1024, 4))
-            {
-                _res = (size / Math.Pow(1024, 3)).ToString() + " gb";
-            }
-            return _res;
         }
         
         /// <summary>
@@ -636,8 +628,8 @@ namespace PUFAS
         {
             Window win = new Window
             {
-                Width = 200,
-                Height = 120,
+                Width = 300,
+                Height = 150,
                 WindowStartupLocation = WindowStartupLocation.CenterScreen
             };
             Label lbl = new Label();
@@ -647,16 +639,17 @@ namespace PUFAS
                     lbl.Content = "Новая папка";
                     break;
                 case 1:
-                    lbl.Content = "Новые файл";
+                    lbl.Content = "Новый файл";
                     break;
                 case 2:
                     lbl.Content = "Введите новое имя";
                     break;
             }
-            
+
             StackPanel sp = new StackPanel
             {
-                Margin = new Thickness(5)
+                Margin = new Thickness(5),
+                Background = new SolidColorBrush(Colors.Gray)
             };
             TextBox txb = new TextBox
             {
@@ -665,6 +658,7 @@ namespace PUFAS
             Button btn = new Button
             {
                 Width = 100,
+                Height = 30,
                 Content = "Ok",
                 Margin = new Thickness(0, 10, 0, 0)
             };
@@ -689,31 +683,43 @@ namespace PUFAS
             Label l_newF = new Label();
             l_newF.Content = "Новый файл";
             l_newF.Background = new SolidColorBrush(Colors.Transparent);
+            l_newF.Foreground = new SolidColorBrush(Colors.White);
             l_newF.PreviewMouseLeftButtonDown += 
                 new MouseButtonEventHandler((s, o) => { CreateNewFile(); });
             Label l_newD = new Label();
             l_newD.Content = "Новая папка";
             l_newD.Background = new SolidColorBrush(Colors.Transparent);
+            l_newD.Foreground = new SolidColorBrush(Colors.White);
             l_newD.PreviewMouseLeftButtonDown +=
                 new MouseButtonEventHandler((s, o) => { CreateNewDir(); });
             Label l_rename = new Label();
             l_rename.Content = "Переименовать";
             l_rename.Background = new SolidColorBrush(Colors.Transparent);
+            l_rename.Foreground = new SolidColorBrush(Colors.White);
             l_rename.PreviewMouseLeftButtonDown +=
                 new MouseButtonEventHandler((s, o) => { RenameFile(); });
             Label l_cop = new Label();
             l_cop.Content = "Копировать";
             l_cop.Background = new SolidColorBrush(Colors.Transparent);
+            l_cop.Foreground = new SolidColorBrush(Colors.White);
             l_cop.PreviewMouseLeftButtonDown +=
-                new MouseButtonEventHandler((s, o) => { CopyFile(); });
+                new MouseButtonEventHandler((s, o) => { CopyFile(false); });
+            Label l_cut = new Label();
+            l_cut.Content = "Вырезать";
+            l_cut.Background = new SolidColorBrush(Colors.Transparent);
+            l_cut.Foreground = new SolidColorBrush(Colors.White);
+            l_cut.PreviewMouseLeftButtonDown +=
+                new MouseButtonEventHandler((s, o) => { CopyFile(true); });
             Label l_move = new Label();
-            l_move.Content = "Переместить";
+            l_move.Content = "Вставить";
             l_move.Background = new SolidColorBrush(Colors.Transparent);
+            l_move.Foreground = new SolidColorBrush(Colors.White);
             l_move.PreviewMouseLeftButtonDown +=
-                new MouseButtonEventHandler((s, o) => { MoveFile(); });
+                new MouseButtonEventHandler((s, o) => { PasteFile(); });
             Label l_del = new Label();
             l_del.Content = "Удалить";
             l_del.Background = new SolidColorBrush(Colors.Transparent);
+            l_del.Foreground = new SolidColorBrush(Colors.White);
             l_del.PreviewMouseLeftButtonDown +=
                 new MouseButtonEventHandler((s, o) => { RemoveFile(); });
 

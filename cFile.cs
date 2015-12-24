@@ -11,6 +11,7 @@ namespace PUFAS
         private string name;
         private bool local;
         private string path;
+        private bool iscut;
 
         public string Name
         {
@@ -28,6 +29,12 @@ namespace PUFAS
         {
             get { return local; }
             set { local = value; }
+        }
+
+        public bool IsCut
+        {
+            get { return iscut; }
+            set { iscut = value; }
         }
     }
 }

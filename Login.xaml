@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:PUFAS"
         mc:Ignorable="d" WindowStartupLocation="CenterScreen"
         Title="ПУФАС" Height="230" Width="320">
-    <Grid>
+    <Grid Background="{StaticResource ControlBackgroundNormal}">
         <Grid Margin="20">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -18,13 +18,13 @@
                 <RowDefinition Height="40"/>
                 <RowDefinition Height="40"/>
             </Grid.RowDefinitions>
-            <Label Grid.Column="0" Grid.Row="0" VerticalAlignment="Center" Content="IP адрес"/>
-            <Label Grid.Column="0" Grid.Row="1" VerticalAlignment="Center" Content="Имя пользователя"/>
-            <Label Grid.Column="0" Grid.Row="2" VerticalAlignment="Center" Content="Пароль"/>
-            <Label Grid.Column="0" Grid.Row="3" VerticalAlignment="Center" Name="lblStatus" FontStyle="Italic"/>
-            <TextBox Grid.Column="1" Grid.Row="0" VerticalAlignment="Center" Name="txtHost" Text="192.168.131.138"/>
-            <TextBox Grid.Column="1" Grid.Row="1" VerticalAlignment="Center" Name="txtUser" Text="root"/>
-            <PasswordBox Grid.Column="1" Grid.Row="2" VerticalAlignment="Center" Name="txtPassword" Password="qwerty"/>
+            <TextBlock Grid.Column="0" Grid.Row="0" VerticalAlignment="Center" Foreground="{StaticResource ControlForeground}" Text="IP адрес"/>
+            <TextBlock Grid.Column="0" Grid.Row="1" VerticalAlignment="Center" Foreground="{StaticResource ControlForeground}" Text="Имя пользователя"/>
+            <TextBlock Grid.Column="0" Grid.Row="2" VerticalAlignment="Center" Foreground="{StaticResource ControlForeground}" Text="Пароль"/>
+            <Label Grid.Column="0" Grid.Row="3" VerticalAlignment="Center" Name="lblStatus" FontStyle="Italic" Foreground="{StaticResource ControlForeground}"/>
+            <TextBox Grid.Column="1" Grid.Row="0" VerticalAlignment="Center" Name="txtHost" Text="192.168.131.138" Foreground="{StaticResource ControlForeground}"/>
+            <TextBox Grid.Column="1" Grid.Row="1" VerticalAlignment="Center" Name="txtUser" Text="root" Foreground="{StaticResource ControlForeground}"/>
+            <PasswordBox Grid.Column="1" Grid.Row="2" VerticalAlignment="Center" Name="txtPassword" Password="qwerty" Foreground="{StaticResource ControlForeground}"/>
             <Button Grid.Column="1" Grid.Row="3" HorizontalAlignment="Right" Width="80" Height="20" Content="Вход" Name="btnEnter" PreviewMouseLeftButtonDown="btnEnter_PreviewMouseLeftButtonDown"/>
         </Grid>
     </Grid>
