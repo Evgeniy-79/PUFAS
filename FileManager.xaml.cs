@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.IO;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
@@ -34,6 +35,9 @@ namespace PUFAS
         // Коллекция файлов в удаленном каталоге
         ObservableCollection<pFile> file_remotecollection;
 
+        bool isReconnect;
+        const int TIMEOUT = 30;
+
         List<string> listlocal_path;
         List<string> listremote_path;
 
@@ -66,9 +70,14 @@ namespace PUFAS
             }
         }
 
+        System.Windows.Threading.DispatcherTimer timer =
+            new System.Windows.Threading.DispatcherTimer();
+
+        
+
         public FileManager(SshClient ssh, SftpClient sftp)
         {
-            InitializeComponent(); 
+            InitializeComponent();
             _ssh = ssh;
             _sftp = sftp;
 
@@ -93,6 +102,13 @@ namespace PUFAS
 
             lsLocal.ContextMenu = c_menu();
             lsRemove.ContextMenu = c_menu();
+            // почему?
+
+            // А вот этого я не знаю
+            // Событие разрыва соединения!
+            // Оно у тебя и не срабатывает
+            _sftp.ErrorOccurred +=
+                  new EventHandler<Renci.SshNet.Common.ExceptionEventArgs>((s, o) => { Connect(); });
         }
 
         #region Events
@@ -129,13 +145,11 @@ namespace PUFAS
         }
         private void btnRemove_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            //try
-            //{
-            //    RemoveFile();
-            //}
-            //catch { }
-
-            RemoveFile();
+            try
+            {
+                RemoveFile();
+            }
+            catch { }
         }
         private void Rename_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
@@ -582,43 +596,51 @@ namespace PUFAS
         /// </summary>
         private void GetDirectories(int type)
         {
-            if (type == 0){
-                DirectoryInfo dinfo = new DirectoryInfo(LocalDir);
-                foreach (var dir in dinfo.GetDirectories())
+            try
+            {
+                if (type == 0)
                 {
-                    file_localcollection.Add(new pFile()
+                    DirectoryInfo dinfo = new DirectoryInfo(LocalDir);
+                    foreach (var dir in dinfo.GetDirectories())
                     {
-                        Name = dir.Name,
-                        Date = dir.LastWriteTime
-                    });
-                }
-            }
-            else {
-                IEnumerable<Renci.SshNet.Sftp.SftpFile> ls = _sftp.ListDirectory(RemoteDir);
-                List<pFile> lsp = new List<pFile>();
-
-                foreach (Renci.SshNet.Sftp.SftpFile f in ls)
-                {
-                    pFile _pf = new pFile { 
-                        Name = f.Name,
-                        Date = f.LastWriteTime
-                    };
-
-                    if (f.IsDirectory)
-                    {
-                        _pf.Size = null;
-                        file_remotecollection.Add(_pf);
-                    } 
-                    else
-                    {
-                        _pf.Size = f.Length.ToString();
-                        lsp.Add(_pf);
+                        file_localcollection.Add(new pFile()
+                        {
+                            Name = dir.Name,
+                            Date = dir.LastWriteTime
+                        });
                     }
                 }
+                else
+                {
+                    IEnumerable<Renci.SshNet.Sftp.SftpFile> ls = _sftp.ListDirectory(RemoteDir);
+                    List<pFile> lsp = new List<pFile>();
 
-                foreach (pFile pfl in lsp)
-                    file_remotecollection.Add(pfl);
+                    foreach (Renci.SshNet.Sftp.SftpFile f in ls)
+                    {
+                        pFile _pf = new pFile
+                        {
+                            Name = f.Name,
+                            Date = f.LastWriteTime
+                        };
+
+                        if (f.IsDirectory)
+                        {
+                            _pf.Size = null;
+                            file_remotecollection.Add(_pf);
+                        }
+                        else
+                        {
+                            _pf.Size = f.Length.ToString();
+                            lsp.Add(_pf);
+                        }
+                    }
+
+                    foreach (pFile pfl in lsp)
+                        file_remotecollection.Add(pfl);
+                }
             }
+            catch
+            { Connect(); }
         }
         
         /// <summary>
@@ -731,6 +753,67 @@ namespace PUFAS
             _menu.Items.Add(l_del);
 
             return _menu;
+        }
+
+        private void Connect()
+        {
+            if (!isReconnect)
+            {
+                this.Dispatcher.Invoke(new Action(() => {
+                    isReconnect = true;
+                    _ssh.Disconnect();
+                    WinRecoonect win = new WinRecoonect(_ssh, _sftp, TIMEOUT);
+                    win.ShowDialog();
+
+                    if(_ssh.IsConnected)
+                    {
+                        UpdateLocalDir();
+                        UpdateRemoteDir();
+                        isReconnect = false;
+                    }
+                    else
+                    {
+                        MessageBox.Show("Соединение установить не удалось!");
+                        try
+                        {
+                            _ssh.Disconnect();
+                            _sftp.Disconnect();
+                        }
+                        catch
+                        {
+                        }
+
+                        Login login = new Login();
+                        login.Show();
+                        this.Close();
+                    }
+
+                    //try
+                    //{
+                    //    UpdateLocalDir();
+                    //    UpdateRemoteDir();
+                    //    isReconnect = false;
+                    //}
+                    //catch
+                    //{
+                    //    MessageBox.Show("Соединение установить не удалось!");
+                    //    try
+                    //    {
+                    //        _ssh.Disconnect();
+                    //        _sftp.Disconnect();
+                    //    }
+                    //    catch
+                    //    {
+                    //    }
+                        
+                    //    Login login = new Login();
+                    //    login.Show();
+                    //    //_ssh.Dispose();
+                    //    //_sftp.Dispose();
+                    //    this.Close();
+                    //}
+                }));
+            }
         }
     }
 }

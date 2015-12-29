@@ -1,0 +1,14 @@
+﻿<Window x:Class="PUFAS.WinRecoonect"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:PUFAS"
+        mc:Ignorable="d"
+        Title="Восстановление соединения" Height="150" Width="300" WindowStartupLocation="CenterScreen" Loaded="Window_Loaded" Closing="Window_Closing">
+    <Grid Background="{StaticResource ControlBackgroundNormal}">
+        <Label Content="Соединение разорванно!" Margin="10" Foreground="red" FontSize="16"/>
+        <Label Content="Выполняется переподключение" Margin="10,50,0,0" Foreground="{StaticResource ControlForeground}"/>
+        <Label Name="lbl" Content="..." Margin="190,50,0,0" Foreground="{StaticResource ControlForeground}"/>
+    </Grid>
+</Window>
